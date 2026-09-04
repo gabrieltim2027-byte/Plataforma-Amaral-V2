@@ -1,0 +1,1 @@
+# Plataforma-Amaral-V2
