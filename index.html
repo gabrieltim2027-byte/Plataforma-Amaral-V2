@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plataforma Amaral - Treinamento ENEM Pro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    :root{
+      --amaral-navy:#061936;
+      --amaral-navy-2:#0a2a5a;
+      --amaral-blue:#2458e6;
+      --amaral-blue-2:#4a7cff;
+      --amaral-gold:#f6b51b;
+      --amaral-bg:#f4f7fb;
+      --amaral-card:#ffffff;
+      --amaral-text:#18263f;
+      --amaral-muted:#71809a;
+      --amaral-line:#e0e7f1;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      min-height:100%;
+      background:radial-gradient(circle at 75% 0%, rgba(74,124,255,.08), transparent 28%), var(--amaral-bg);
+      color:var(--amaral-text);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      overflow-x:hidden;
+    }
+    #render-statement img{
+      max-width:100%;
+      height:auto;
+      border-radius:10px;
+      margin:16px auto;
+      display:block;
+      box-shadow:0 4px 15px rgba(0,0,0,0.08);
+    }
+    .highlighted-text{
+      background:#ffe16a !important;
+      color:#132541 !important;
+      padding:1px 3px !important;
+      border-radius:4px !important;
+      box-shadow:0 0 0 1px rgba(240,179,0,.16);
+    }
+
+    #auth-screen{
+      background:rgba(6,25,54,0.85);
+      backdrop-filter:blur(8px);
+    }
+    .auth-card{
+      max-height:calc(100vh - 32px);
+      overflow-y:auto;
+    }
+
+    header{
+      position:fixed !important;
+      left:0;top:0;bottom:0;
+      width:240px !important;
+      height:100vh !important;
+      z-index:40;
+      background:linear-gradient(180deg,#061936 0%,#082653 54%,#06172f 100%) !important;
+      border-right:1px solid rgba(255,255,255,.08) !important;
+      box-shadow:10px 0 30px rgba(5,22,52,.15) !important;
+    }
+    header>div{
+      height:100%!important;
+      padding:14px 12px !important;
+      display:flex !important;
+      flex-direction:column !important;
+      justify-content:flex-start !important;
+    }
+    .header-brand{
+      padding:4px 6px 12px !important;
+      margin-bottom:8px !important;
+      border-bottom:1px solid rgba(255,255,255,.10) !important;
+    }
+    header nav{
+      flex:1 !important;
+      overflow-y:auto !important;
+      display:flex !important;
+      flex-direction:column !important;
+      gap:3px !important;
+    }
+    header nav button{
+      min-height:38px !important;
+      display:flex !important;
+      align-items:center !important;
+      gap:8px !important;
+      color:#c8d5e9 !important;
+      border-radius:9px !important;
+      padding:8px 11px !important;
+      font-size:11.5px !important;
+      font-weight:700 !important;
+      transition:all .18s ease !important;
+    }
+    header nav button:hover{
+      background:rgba(255,255,255,.08) !important;
+      color:#fff !important;
+      transform:translateX(2px);
+    }
+    header nav button.active-nav{
+      background:linear-gradient(135deg,#2c62df,#214cc0) !important;
+      color:#fff !important;
+      box-shadow:0 6px 16px rgba(30,79,216,.25);
+    }
+
+    main{
+      margin-left:240px !important;
+      padding:22px 28px 40px !important;
+    }
+    main section{
+      max-width:1160px !important;
+      margin-left:auto !important;
+      margin-right:auto !important;
+    }
+    .card-box{
+      background:rgba(255,255,255,.98);
+      border:1px solid var(--amaral-line);
+      border-radius:16px;
+      box-shadow:0 12px 36px rgba(16,39,76,.05);
+    }
+    .opt-btn{
+      min-height:52px !important;
+      padding:10px 14px !important;
+      border:1px solid #dce4ef !important;
+      background:#fff !important;
+      color:#263852 !important;
+      border-radius:12px !important;
+      transition:all .16s ease !important;
+      box-shadow:0 2px 8px rgba(24,46,82,.03) !important;
+      cursor:pointer;
+    }
+    .opt-btn:hover{
+      border-color:#9db9f8 !important;
+      background:#f7faff !important;
+      transform:translateY(-1px);
+    }
+    .opt-btn.is-selected{
+      border-color:var(--amaral-blue) !important;
+      background:#eef4ff !important;
+      box-shadow:0 0 0 2px rgba(36,88,230,.15) !important;
+    }
+    .opt-btn.is-eliminated{
+      opacity:.35 !important;
+      background:#f1f3f6 !important;
+      text-decoration:line-through !important;
+      transform:none !important;
+    }
+    .opt-btn strong{
+      flex:0 0 30px;
+      height:30px;
+      border-radius:50%;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      background:#f0f4fa;
+      color:#687993;
+    }
+    .opt-btn.is-selected strong{
+      background:var(--amaral-blue);
+      color:#fff !important;
+    }
+    .amaral-tools{
+      display:flex;
+      flex-wrap:wrap;
+      gap:7px;
+      padding:8px;
+      border:1px solid #e0e7f1;
+      background:linear-gradient(90deg,#fbfcff,#f7faff);
+      border-radius:12px;
+    }
+    .amaral-tool-btn{
+      padding:6px 10px;
+      border:1px solid #d9e2ee;
+      background:#fff;
+      color:#40516c;
+      border-radius:8px;
+      font-size:11px;
+      font-weight:700;
+      cursor:pointer;
+      transition:.15s;
+    }
+    .amaral-tool-btn:hover, .amaral-tool-btn.active{
+      color:#1748bc;
+      background:#eef4ff;
+      border-color:#a6bff2;
+    }
+
+    body.night-mode{background:#e8edf4 !important; color:#26344d !important;}
+    body.night-mode .card-box{background:#f4f6f9 !important; border-color:#d4dce8 !important; color:#26344d !important;}
+    body.night-mode #render-statement{color:#1e293b !important;}
+
+    body.dark-mode{
+      background:#071326 !important;
+      color:#f1f5f9 !important;
+    }
+    body.dark-mode .card-box{
+      background:#0d1b32 !important;
+      border-color:#203453 !important;
+      color:#f1f5f9 !important;
+    }
+    body.dark-mode #render-statement{
+      color:#f8fafc !important;
+    }
+    body.dark-mode #render-statement *{
+      color:inherit !important;
+    }
+    body.dark-mode .opt-btn{
+      background:#0a172b !important;
+      color:#e2e8f0 !important;
+      border-color:#263b5c !important;
+    }
+    body.dark-mode .opt-btn *{
+      color:inherit !important;
+    }
+    body.dark-mode .opt-btn strong{
+      background:#172844 !important;
+      color:#94a3b8 !important;
+    }
+    body.dark-mode .opt-btn.is-selected{
+      background:#162c54 !important;
+      border-color:#3b82f6 !important;
+    }
+    body.dark-mode .opt-btn.is-selected strong{
+      background:#2563eb !important;
+      color:#ffffff !important;
+    }
+    body.dark-mode .opt-btn:hover{background:#112440 !important;}
+    body.dark-mode .amaral-tools{background:#0b1830 !important; border-color:#203453 !important;}
+    body.dark-mode .amaral-tool-btn{background:#0b172b !important; color:#cbd5e1 !important; border-color:#29405f !important;}
+    body.dark-mode select, body.dark-mode input{background:#0a172b !important; color:#f1f5f9 !important; border-color:#263b5c !important;}
+
+    @media(max-width:900px){
+      header{position:sticky !important; width:100% !important; height:auto !important;}
+      header>div{padding:8px 12px !important; display:block !important;}
+      .header-brand{padding:0 4px 6px !important; margin-bottom:4px !important;}
+      header nav{flex-direction:row !important; overflow-x:auto !important;}
+      header nav button{white-space:nowrap !important; width:auto !important; padding:7px 9px !important;}
+      main{margin-left:0 !important; padding:14px 12px 28px !important;}
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <div id="toast-banner" class="hidden fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-2xl text-xs font-bold transition-all transform duration-300"></div>
+
+  <!-- MODAL DE INFORME DIÁRIO -->
+  <div id="modal-aviso-diario" class="hidden fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md transition-all">
+    <div class="bg-white dark:bg-slate-900 border border-amber-500/50 rounded-2xl sm:rounded-3xl max-w-xl w-full max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="shrink-0 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-5 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between text-slate-950 shadow-md">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl sm:text-2xl">📢</span>
+          <div>
+            <span class="text-[9.5px] sm:text-[10px] font-black uppercase tracking-widest text-slate-950/85 block">COMUNICADO OFICIAL</span>
+            <span id="modal-aviso-tipo" class="text-[10px] sm:text-xs font-black uppercase px-2 py-0.5 rounded-md bg-black/20 text-white inline-block">Importante</span>
+          </div>
+        </div>
+        <button onclick="fecharAvisoDiario()" class="text-lg sm:text-xl font-black text-slate-950/80 hover:text-slate-950 p-1 transition" title="Fechar">✕</button>
+      </div>
+      <div class="flex-1 overflow-y-auto p-5 sm:p-6 space-y-3.5">
+        <h3 id="modal-aviso-titulo" class="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-snug"></h3>
+        <div id="modal-aviso-mensagem" class="text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line bg-slate-50 dark:bg-slate-800/70 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-inner"></div>
+      </div>
+      <div class="shrink-0 px-5 sm:px-6 py-3 sm:py-3.5 bg-slate-50 dark:bg-slate-800/90 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2.5">
+        <span id="modal-aviso-data" class="text-[10.5px] text-slate-400 font-medium"></span>
+        <button onclick="fecharAvisoDiario()" class="bg-blue-600 hover:bg-blue-700 text-white font-black px-5 py-2.5 rounded-xl text-xs transition shadow-md active:scale-95">
+          Entendido, continuar estudos ✓
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE REPORTAR ERRO -->
+  <div id="modal-reportar-erro" class="hidden fixed inset-0 flex items-center justify-center z-50 p-4 bg-slate-950/80 backdrop-blur-md transition-all">
+    <div class="bg-white dark:bg-slate-900 border border-rose-500/40 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-150">
+      <div class="bg-gradient-to-r from-rose-600 to-rose-700 px-6 py-4 flex items-center justify-between text-white">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🚩</span>
+          <div>
+            <h3 class="text-sm font-black uppercase tracking-wide">Reportar Inconsistência</h3>
+            <span id="reportar-questao-codigo" class="text-[10px] text-rose-200 block font-mono"></span>
+          </div>
+        </div>
+        <button onclick="fecharModalReporte()" class="text-lg font-black text-white/80 hover:text-white">✕</button>
+      </div>
+      <div class="p-5 space-y-3.5">
+        <div>
+          <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Qual o problema identificado?</label>
+          <select id="reporte-motivo" class="w-full text-xs p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:border-rose-500">
+            <option value="Gabarito Incorreto">Gabarito Incorreto</option>
+            <option value="Erro de Digitação / Português">Erro de Digitação / Português</option>
+            <option value="Fórmula ou Imagem Ilegível">Fórmula ou Imagem Ilegível</option>
+            <option value="Classificação / Matéria Errada">Classificação / Matéria Errada</option>
+            <option value="Outro Motivo">Outro Motivo</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Detalhes (Opcional)</label>
+          <textarea id="reporte-desc" rows="3" placeholder="Explique brevemente o que está errado..." class="w-full text-xs p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:border-rose-500"></textarea>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <button onclick="fecharModalReporte()" class="text-xs font-bold px-4 py-2 rounded-xl text-slate-400 hover:text-slate-600">Cancelar</button>
+          <button onclick="enviarReporteErro()" class="bg-rose-600 hover:bg-rose-700 text-white font-black px-5 py-2.5 rounded-xl text-xs transition shadow-md">Enviar ao Professor 🚀</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE PERFIL PÚBLICO -->
+  <div id="modal-perfil-aluno" class="hidden fixed inset-0 flex items-center justify-center z-50 p-4 bg-slate-950/80 backdrop-blur-md transition-all">
+    <div class="bg-white dark:bg-slate-900 border border-blue-500/40 rounded-3xl max-w-sm w-full shadow-2xl overflow-hidden p-6 space-y-4 text-center relative">
+      <button onclick="fecharPerfilAlunoModal()" class="absolute top-4 right-4 text-sm font-black text-slate-400 hover:text-slate-600">✕</button>
+      <div class="relative mx-auto w-20 h-20 rounded-2xl overflow-hidden border-2 border-blue-500 shadow-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-3xl">
+        <img id="card-aluno-foto" class="w-full h-full object-cover hidden" />
+        <span id="card-aluno-avatar-fallback">👤</span>
+      </div>
+      <div>
+        <h3 id="card-aluno-nome" class="text-base font-black text-slate-900 dark:text-white"></h3>
+        <span id="card-aluno-curso" class="inline-block text-[11px] font-bold px-3 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800 mt-1">Geral / ENEM</span>
+        <span id="card-aluno-instituicao" class="block text-[10px] text-slate-400 mt-1"></span>
+      </div>
+      <div class="grid grid-cols-2 gap-2 pt-1 text-left text-xs">
+        <div class="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-800">
+          <span class="text-[10px] uppercase font-bold text-slate-400 block">Ofensiva</span>
+          <span id="card-aluno-streak" class="text-sm font-black text-amber-500">🔥 1 dia</span>
+        </div>
+        <div class="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-800">
+          <span class="text-[10px] uppercase font-bold text-slate-400 block">Pontuação Total</span>
+          <span id="card-aluno-xp" class="text-sm font-black text-blue-600">0 XP</span>
+        </div>
+        <div class="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-800">
+          <span class="text-[10px] uppercase font-bold text-slate-400 block">Taxa de Acerto</span>
+          <span id="card-aluno-taxa" class="text-sm font-black text-emerald-600">0%</span>
+        </div>
+        <div class="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-800">
+          <span class="text-[10px] uppercase font-bold text-slate-400 block">Melhor Área</span>
+          <span id="card-aluno-melhor-area" class="text-xs font-black text-indigo-500 truncate block">N/D</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TELA DE LOGIN -->
+  <div id="auth-screen" class="fixed inset-0 flex items-center justify-center z-50 p-3">
+    <div class="auth-card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 rounded-2xl max-w-sm w-full shadow-2xl space-y-3.5">
+      <div class="flex items-center gap-3.5">
+        <img src="https://i.ibb.co/xtCpRC3c/watermarked-img-3430290674046187586.jpg" class="h-14 w-14 rounded-2xl object-contain border-2 border-slate-100 dark:border-slate-700 p-1 bg-white shadow-md" alt="Logo Amaral ENEM" />
+        <div>
+          <h1 class="font-black text-lg text-slate-900 dark:text-white leading-tight">AMARAL <span class="text-blue-600">ENEM PRO</span></h1>
+          <p class="text-[10px] font-extrabold text-amber-500 uppercase tracking-widest">Acesso do Estudante</p>
+        </div>
+      </div>
+      <div class="flex border-b border-slate-200 dark:border-slate-800">
+        <button id="auth-tab-login" onclick="toggleAuthMode('login')" class="flex-1 py-1.5 text-xs font-bold border-b-2 border-blue-600 text-blue-600">Entrar</button>
+        <button id="auth-tab-signup" onclick="toggleAuthMode('signup')" class="flex-1 py-1.5 text-xs font-bold text-slate-400">Criar Cadastro</button>
+      </div>
+      <div class="space-y-2.5">
+        <div id="signup-name-field" class="hidden">
+          <label class="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Nome Completo</label>
+          <input type="text" id="auth-name" placeholder="Seu nome completo" class="w-full text-xs p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:border-blue-500" />
+        </div>
+        <div>
+          <label class="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">E-mail</label>
+          <input type="email" id="auth-email" placeholder="seuemail@exemplo.com" class="w-full text-xs p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:border-blue-500" />
+        </div>
+        <div>
+          <label class="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Senha</label>
+          <input type="password" id="auth-password" placeholder="Mínimo 6 dígitos" class="w-full text-xs p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:border-blue-500" />
+        </div>
+        <button id="auth-btn-action" onclick="handleAuthAction()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition text-xs shadow-md shadow-blue-500/20 mt-1">
+          Entrar na Plataforma
+        </button>
+        <p id="auth-status-msg" class="text-[11px] text-center text-slate-400 min-h-4"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR LATERAL -->
+  <header>
+    <div>
+      <div class="header-brand">
+        <div class="flex items-center gap-3">
+          <img src="https://i.ibb.co/xtCpRC3c/watermarked-img-3430290674046187586.jpg" class="h-11 w-11 rounded-xl object-contain border border-white/20 p-1 bg-white shadow-sm" alt="Logo" />
+          <div class="min-w-0">
+            <span class="font-black text-sm leading-none text-white block truncate">AMARAL <span class="text-blue-400">ENEM</span></span>
+            <span id="user-display-tag" class="block text-[8.5px] font-bold text-amber-400 uppercase tracking-widest mt-0.5 truncate">Aluno Conectado</span>
+          </div>
+        </div>
+      </div>
+      <nav>
+        <button onclick="setScreen('practice')" id="nav-btn-practice" class="active-nav">⌂ Praticar Questões</button>
+        <button onclick="setScreen('erros')" id="nav-btn-erros">▤ Caderno de Erros</button>
+        <button onclick="setScreen('simulado')" id="nav-btn-simulado">◈ Modo Simulado</button>
+        <button onclick="setScreen('ranking')" id="nav-btn-ranking">♛ Quadro de Honra</button>
+        <button onclick="setScreen('stats')" id="nav-btn-stats">▥ Estatísticas & Raio-X</button>
+        <button onclick="setScreen('perfil')" id="nav-btn-perfil">👤 Meu Perfil</button>
+        <button onclick="abrirAvisoManual()" id="nav-btn-aviso" class="relative">📢 Comunicados <span id="aviso-unread-dot" class="hidden absolute top-2 right-2 w-2 h-2 rounded-full bg-amber-400 animate-ping"></span></button>
+        <div class="pt-2 border-t border-white/10 mt-auto flex flex-col gap-1">
+          <button onclick="toggleTheme()" class="text-slate-300">🌙 Alternar Tema</button>
+          <button onclick="logout()" class="text-rose-400">↪ Sair da Conta</button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="max-w-[1160px] mx-auto mb-3 flex justify-between items-center text-xs text-slate-500 font-medium px-2">
+      <div class="flex items-center gap-2">
+        <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+        <span>Atalhos: <b>[A-E]</b> selecionar | <b>[Enter]</b> confirmar | <b>[← / →]</b> voltar e pular</span>
+      </div>
+      <div id="simulado-timer-bar" class="hidden text-amber-600 font-black text-xs bg-amber-50 dark:bg-amber-950/40 px-3 py-1 rounded-lg border border-amber-300">
+        ⏱️ Restante: <span id="simulado-timer-clock">00:00</span>
+      </div>
+    </div>
+
+    <!-- TELA DE TREINO -->
+    <section id="view-practice" class="space-y-4">
+      <div class="card-box p-4 sm:p-5 space-y-3.5">
+        <div class="flex items-center justify-between border-b pb-2.5">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-black uppercase text-blue-600 tracking-wider">🎯 Filtros Detalhados de Treino</span>
+            <span id="filtered-badge-count" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800">0 itens encontrados</span>
+          </div>
+          <button onclick="clearAllFilters()" class="text-xs font-bold text-slate-400 hover:text-rose-600 transition">Resetar Filtros ↺</button>
+        </div>
+        <div class="relative">
+          <input type="text" id="filter-search" oninput="runFilter()" placeholder="🔍 Buscar por trecho do enunciado ou código..." class="w-full text-xs p-2.5 pl-3 pr-9 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-blue-500 shadow-xs" />
+          <button type="button" onclick="clearSearchInput()" id="btn-clear-search" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">✕</button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">1. Grande Área ENEM</label>
+            <select id="filter-area" onchange="onAreaChange()" class="w-full text-xs border rounded-xl p-2 bg-white dark:bg-slate-800 font-medium focus:outline-none focus:border-blue-500">
+              <option value="todas">Todas as 4 Áreas</option>
+              <option value="Matemática">Matemática e suas Tecnologias</option>
+              <option value="Ciências da Natureza">Ciências da Natureza</option>
+              <option value="Ciências Humanas">Ciências Humanas</option>
+              <option value="Linguagens">Linguagens e Códigos</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">2. Disciplina / Matéria</label>
+            <select id="filter-disciplina" onchange="onDisciplinaChange()" class="w-full text-xs border rounded-xl p-2 bg-white dark:bg-slate-800 font-medium focus:outline-none focus:border-blue-500">
+              <option value="todas">Todas as Disciplinas</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">3. Tópico / Grande Frente</label>
+            <select id="filter-topico" onchange="onTopicoChange()" class="w-full text-xs border rounded-xl p-2 bg-white dark:bg-slate-800 font-medium focus:outline-none focus:border-blue-500">
+              <option value="todas">Todos os Tópicos</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">4. Subtópico</label>
+            <select id="filter-subtopico" onchange="runFilter()" class="w-full text-xs border rounded-xl p-2 bg-white dark:bg-slate-800 font-medium focus:outline-none focus:border-blue-500">
+              <option value="todas">Todos os Subtópicos</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Nível de Dificuldade</label>
+            <select id="filter-dificuldade" onchange="runFilter()" class="w-full text-xs border rounded-xl p-2 bg-white dark:bg-slate-800 font-medium focus:outline-none focus:border-blue-500">
+              <option value="todas">Todas as Dificuldades</option>
+              <option value="Fácil">Fácil</option>
+              <option value="Médio">Médio</option>
+              <option value="Difícil">Difícil</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Status de Resolução</label>
+            <select id="filter-status" onchange="runFilter()" class="w-full text-xs border rounded-xl p-2 bg-white dark:bg-slate-800 font-medium focus:outline-none focus:border-blue-500">
+              <option value="nao_feitas" selected>Inéditas (Não Resolvidas)</option>
+              <option value="todas">Todas as Questões</option>
+              <option value="acertadas">Apenas Acertadas ✅</option>
+              <option value="erradas">Apenas Erradas ❌</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD DA QUESTÃO -->
+      <div class="card-box overflow-hidden shadow-xl border border-slate-200 dark:border-slate-800">
+        <div class="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 px-5 py-3 flex flex-wrap items-center justify-between gap-2.5 text-white shadow-md">
+          <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold tracking-wide">
+            <span class="font-black uppercase tracking-wider bg-black/25 px-2.5 py-1 rounded-md text-white shadow-xs">PLATAFORMA AMARAL</span>
+            <span class="text-white/60">|</span>
+            <span id="tag-materia" class="font-bold text-amber-100"></span>
+            <span id="sep-topico" class="text-white/60 hidden">|</span>
+            <span id="tag-topico" class="hidden font-medium text-white/95"></span>
+            <span id="sep-subtopico" class="text-white/60 hidden">|</span>
+            <span id="tag-subtopico" class="hidden font-medium text-amber-200"></span>
+            <span id="sep-habilidade" class="text-white/60 hidden">|</span>
+            <span id="tag-habilidade" class="hidden bg-black/25 text-[10.5px] font-mono px-2 py-0.5 rounded text-amber-200"></span>
+            <span class="text-white/60">|</span>
+            <span id="tag-ano" class="bg-white/20 text-[10.5px] font-black px-2 py-0.5 rounded text-white tracking-wide">2026 • AUTORAL</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="tag-codigo-questao" class="text-[11px] font-mono font-bold bg-black/30 text-amber-300 px-2.5 py-1 rounded"></span>
+            <span id="tag-counter" class="text-xs font-bold text-white/90"></span>
+          </div>
+        </div>
+
+        <div class="p-5 sm:p-7 space-y-5">
+          <div class="flex flex-wrap items-center gap-2">
+            <span id="tag-dificuldade-badge" class="text-xs font-bold px-3 py-1 rounded-full bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">Dificuldade: Médio</span>
+          </div>
+
+          <div id="render-statement" class="text-base sm:text-lg leading-relaxed select-text font-normal"></div>
+
+          <div class="amaral-tools">
+            <button type="button" class="amaral-tool-btn" id="tool-highlight" onclick="toggleHighlightMode()">🖍️ Marca-texto</button>
+            <button type="button" class="amaral-tool-btn" onclick="clearHighlights()">↩ Limpar</button>
+            <button type="button" class="amaral-tool-btn" id="tool-eliminate" onclick="toggleEliminateMode()">✕ Eliminar</button>
+            <button type="button" class="amaral-tool-btn" onclick="clearEliminations()">↺ Restaurar</button>
+            <button type="button" class="amaral-tool-btn text-rose-500 hover:text-rose-600" onclick="abrirModalReporte()">🚩 Reportar erro</button>
+          </div>
+
+          <div id="render-options" class="space-y-2.5"></div>
+          <div id="render-feedback" class="hidden p-4 rounded-xl text-sm leading-relaxed"></div>
+
+          <div class="flex flex-wrap justify-between items-center pt-3 border-t gap-2">
+            <!-- BOTÃO DE COMENTÁRIOS SÓ APARECE APÓS RESPONDER -->
+            <button id="btn-toggle-comentarios" onclick="toggleCommentsSection()" class="hidden text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
+              💬 Comentários (<span id="comments-count">0</span>)
+            </button>
+            <span id="aviso-bloqueio-comentario" class="text-[11px] text-slate-400 italic">🔒 Responda a questão para liberar os comentários.</span>
+
+            <div class="flex items-center gap-2">
+              <button id="action-prev" onclick="movePrev()" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold px-3.5 py-2.5 rounded-xl transition text-xs flex items-center gap-1 disabled:opacity-30">← Anterior</button>
+              <button id="action-submit" onclick="submitSelection()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl transition text-xs shadow-md">Confirmar Resposta</button>
+              <button id="action-next" onclick="moveNext()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold px-4 py-2.5 rounded-xl transition text-xs shadow-md flex items-center gap-1"><span id="next-btn-text">Pular Item →</span></button>
+            </div>
+          </div>
+
+          <div id="section-comments" class="hidden border-t pt-3 space-y-3">
+            <h4 class="text-xs font-black text-slate-900 dark:text-white uppercase">Discussão dos Alunos</h4>
+            <div class="flex gap-2">
+              <input type="text" id="input-comment" placeholder="Compartilhe uma dica ou raciocínio..." class="w-full text-xs p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none" />
+              <button onclick="postComment()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-xs">Enviar</button>
+            </div>
+            <div id="comments-list" class="space-y-2 max-h-56 overflow-y-auto"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. RANKING -->
+    <section id="view-ranking" class="hidden space-y-5">
+      <div class="card-box p-5 sm:p-7 space-y-4">
+        <div class="flex items-center justify-between border-b pb-3">
+          <div>
+            <h2 class="text-lg font-black text-slate-800 dark:text-white">🏆 Quadro de Honra ENEM</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Sincronizado diretamente do banco de dados</p>
+          </div>
+          <div class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+            <button onclick="setRankingTab('semanal')" id="rank-tab-semanal" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 text-blue-600 shadow-xs">Semanal</button>
+            <button onclick="setRankingTab('mensal')" id="rank-tab-mensal" class="text-xs font-medium px-3 py-1.5 rounded-lg text-slate-500">Mensal</button>
+            <button onclick="setRankingTab('geral')" id="rank-tab-geral" class="text-xs font-medium px-3 py-1.5 rounded-lg text-slate-500">Geral</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="text-slate-400 border-b dark:border-slate-800">
+                <th class="py-2">Posição</th>
+                <th class="py-2">Estudante</th>
+                <th class="py-2 text-right">Pontuação XP</th>
+              </tr>
+            </thead>
+            <tbody id="ranking-table-body" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. CADERNO DE ERROS -->
+    <section id="view-erros" class="hidden space-y-5">
+      <div class="card-box p-5 sm:p-7 space-y-4">
+        <h2 class="text-lg font-black text-slate-900 dark:text-white">Caderno de Erros na Nuvem</h2>
+        <p class="text-xs text-slate-500">Acesse seus erros de qualquer aparelho e refaça para fixar a matéria.</p>
+        <div id="erros-list-container" class="space-y-2.5"></div>
+      </div>
+    </section>
+
+    <!-- 4. SIMULADOS -->
+    <section id="view-simulado" class="hidden space-y-5">
+      <div class="card-box p-6 sm:p-8 text-center space-y-5">
+        <h2 class="text-lg font-black text-slate-900 dark:text-white">Simulados Oficiais ENEM</h2>
+        <p class="text-xs text-slate-500">Treine seu ritmo de prova com cronômetro regressivo contínuo:</p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 max-w-2xl mx-auto pt-1">
+          <button onclick="startSimulado(15, 45)" class="p-4 border rounded-2xl font-bold bg-white dark:bg-slate-800 hover:border-blue-500 transition">
+            <div class="text-2xl mb-1">⚡</div>
+            <div class="text-sm text-slate-800 dark:text-slate-100">15 Itens</div>
+            <div class="text-[11px] text-slate-400 mt-1">45 Minutos</div>
+          </button>
+          <button onclick="startSimulado(45, 135)" class="p-4 border rounded-2xl font-bold bg-white dark:bg-slate-800 hover:border-blue-500 transition">
+            <div class="text-2xl mb-1">📚</div>
+            <div class="text-sm text-slate-800 dark:text-slate-100">45 Itens</div>
+            <div class="text-[11px] text-slate-400 mt-1">2h 15min</div>
+          </button>
+          <button onclick="startSimulado(90, 300)" class="p-4 border rounded-2xl font-bold bg-white dark:bg-slate-800 hover:border-blue-500 transition">
+            <div class="text-2xl mb-1">🏆</div>
+            <div class="text-sm text-slate-800 dark:text-slate-100">90 Itens</div>
+            <div class="text-[11px] text-slate-400 mt-1">5 Horas (Completo)</div>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. ESTATÍSTICAS & RAIO-X -->
+    <section id="view-stats" class="hidden space-y-5">
+      <div class="card-box p-5 sm:p-7 space-y-4">
+        <div class="flex flex-wrap items-center justify-between border-b pb-3 gap-2">
+          <div>
+            <h3 class="text-lg font-black text-slate-900 dark:text-white">📊 Central de Desempenho & Diagnóstico ENEM</h3>
+            <p class="text-xs text-slate-500">Mapeamento em tempo real das suas áreas fortes e pontos fracos</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-center">
+          <div class="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border">
+            <span class="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Questões Feitas</span>
+            <div id="stat-total" class="text-3xl font-black text-slate-800 dark:text-white mt-1">0</div>
+          </div>
+          <div class="p-4 bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl border border-emerald-200">
+            <span class="text-[11px] text-emerald-600 font-bold uppercase tracking-wider">Taxa de Acerto Geral</span>
+            <div id="stat-taxa" class="text-3xl font-black text-emerald-600 mt-1">0%</div>
+          </div>
+          <div class="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-2xl border border-blue-200">
+            <span class="text-[11px] text-blue-600 font-bold uppercase tracking-wider">Pontuação Total XP</span>
+            <div id="stat-xp" class="text-3xl font-black text-blue-600 mt-1">0 XP</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          <div class="p-4 rounded-2xl border bg-emerald-50/50 dark:bg-emerald-950/20 space-y-2.5">
+            <h4 class="text-xs font-black uppercase text-emerald-700 dark:text-emerald-300">🔥 Seus Maiores Domínios</h4>
+            <div id="stats-top-strengths" class="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
+              <p class="text-[11.5px] italic text-slate-400">Resolva pelo menos 2 questões para mapear seus pontos fortes.</p>
+            </div>
+          </div>
+          <div class="p-4 rounded-2xl border bg-rose-50/50 dark:bg-rose-950/20 space-y-2.5">
+            <h4 class="text-xs font-black uppercase text-rose-700 dark:text-rose-300">⚠️ Pontos de Atenção</h4>
+            <div id="stats-top-weaknesses" class="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
+              <p class="text-[11.5px] italic text-slate-400">Seus pontos que exigem mais treino aparecerão aqui.</p>
+            </div>
+          </div>
+        </div>
+        <div class="pt-2">
+          <h4 class="text-xs font-black text-slate-800 dark:text-white uppercase mb-2">Aproveitamento (%) por Disciplina</h4>
+          <div style="height:250px; position:relative;"><canvas id="disciplineBarChart"></canvas></div>
+        </div>
+        <div class="pt-3 border-t space-y-3">
+          <h4 class="text-xs font-black text-slate-900 dark:text-white uppercase">Raio-X Completo: Matéria por Matéria</h4>
+          <div id="stats-accordion-container" class="space-y-2"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. MEU PERFIL -->
+    <section id="view-perfil" class="hidden space-y-5">
+      <div class="card-box p-5 sm:p-7 space-y-6">
+        <div class="border-b pb-3 flex items-center justify-between">
+          <div>
+            <h3 class="text-lg font-black text-slate-900 dark:text-white">👤 Meu Perfil de Estudante</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Personalize sua foto, curso e universidade dos sonhos.</p>
+          </div>
+          <span id="perfil-streak-badge" class="text-xs font-black px-3 py-1 bg-amber-500/10 text-amber-500 rounded-full border border-amber-500/20">🔥 1 dia consecutivo</span>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center gap-5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800">
+          <div class="relative w-24 h-24 rounded-2xl overflow-hidden border-2 border-blue-500 shadow-md bg-white dark:bg-slate-900 flex items-center justify-center text-4xl shrink-0">
+            <img id="perfil-preview-foto" class="w-full h-full object-cover hidden" />
+            <span id="perfil-preview-fallback">👤</span>
+          </div>
+          <div class="space-y-2.5 flex-1 w-full text-center sm:text-left">
+            <label class="block text-[10.5px] uppercase font-bold text-slate-400 mb-1">Enviar Foto da Galeria / Arquivos do Aparelho</label>
+            <input type="file" id="perfil-file-input" accept="image/*" onchange="processarFotoGaleria(event)" class="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" />
+            <input type="url" id="perfil-input-foto" oninput="atualizarFotoAoDigitar()" placeholder="Ou cole o link de uma foto..." class="w-full text-xs p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Seu Nome</label>
+            <input type="text" id="perfil-input-nome" placeholder="Seu nome" class="w-full text-xs p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800" />
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Curso dos Sonhos</label>
+            <input type="text" id="perfil-input-curso" placeholder="Ex: Medicina, Direito..." class="w-full text-xs p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800" />
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Instituição de Ensino dos Sonhos</label>
+            <select id="perfil-input-instituicao" class="w-full text-xs p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
+              <option value="Universidade Federal (Geral)">Universidade Federal (Geral)</option>
+              <option value="USP - Universidade de São Paulo">USP - Universidade de São Paulo</option>
+              <option value="UNICAMP - Universidade Estadual de Campinas">UNICAMP - Universidade Estadual de Campinas</option>
+              <option value="UNESP - Universidade Estadual Paulista">UNESP - Universidade Estadual Paulista</option>
+              <option value="UFRJ - Universidade Federal do Rio de Janeiro">UFRJ - Universidade Federal do Rio de Janeiro</option>
+              <option value="UFMG - Universidade Federal de Minas Gerais">UFMG - Universidade Federal de Minas Gerais</option>
+              <option value="UnB - Universidade de Brasília">UnB - Universidade de Brasília</option>
+              <option value="UFPA - Universidade Federal do Pará">UFPA - Universidade Federal do Pará</option>
+              <option value="UEPA - Universidade do Estado do Pará">UEPA - Universidade do Estado do Pará</option>
+              <option value="UFAM - Universidade Federal do Amazonas">UFAM - Universidade Federal do Amazonas</option>
+              <option value="UFRGS - Universidade Federal do Rio Grande do Sul">UFRGS - Universidade Federal do Rio Grande do Sul</option>
+              <option value="UFPR - Universidade Federal do Paraná">UFPR - Universidade Federal do Paraná</option>
+              <option value="UFSC - Universidade Federal de Santa Catarina">UFSC - Universidade Federal de Santa Catarina</option>
+              <option value="UFPE - Universidade Federal de Pernambuco">UFPE - Universidade Federal de Pernambuco</option>
+              <option value="UFC - Universidade Federal do Ceará">UFC - Universidade Federal do Ceará</option>
+              <option value="UFBA - Universidade Federal da Bahia">UFBA - Universidade Federal da Bahia</option>
+              <option value="PUC-SP / PUC-Rio">PUC-SP / PUC-Rio</option>
+              <option value="FGV - Fundação Getulio Vargas">FGV - Fundação Getulio Vargas</option>
+              <option value="Insper">Insper</option>
+              <option value="Faculdade Particular (Outra)">Faculdade Particular (Outra)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-3 border-t">
+          <p id="perfil-save-msg" class="text-xs min-h-4"></p>
+          <button onclick="salvarPerfilEstudante()" class="bg-blue-600 hover:bg-blue-700 text-white font-black text-xs px-6 py-2.5 rounded-xl transition shadow-md">Salvar Alterações no Perfil ✓</button>
+        </div>
+
+        <div class="pt-2 border-t space-y-3">
+          <h4 class="text-xs font-black uppercase text-slate-800 dark:text-white">Suas Estatísticas de Comunidade</h4>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs">
+            <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border"><span class="text-[10px] uppercase font-bold text-slate-400 block">Ofensiva</span><span id="perfil-stat-streak" class="text-base font-black text-amber-500">🔥 1 dia</span></div>
+            <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border"><span class="text-[10px] uppercase font-bold text-slate-400 block">Média Diária</span><span id="perfil-stat-media" class="text-base font-black text-blue-600">0 itens</span></div>
+            <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border"><span class="text-[10px] uppercase font-bold text-slate-400 block">Aproveitamento</span><span id="perfil-stat-taxa" class="text-base font-black text-emerald-600">0%</span></div>
+            <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border"><span class="text-[10px] uppercase font-bold text-slate-400 block">Melhor Área</span><span id="perfil-stat-melhor-area" class="text-xs font-black text-indigo-500 truncate block mt-1">N/D</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const SUPABASE_URL = "https://kqmphsmnwhoxhhzooswf.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_VNtcwJyUWdu0ZKWboPySXA_TITetQyA";
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUser = null;
+    let authMode = "login";
+    let allQuestions = [];
+    let currentList = [];
+    let pointer = 0;
+    let chosenOption = null;
+    let userAnswers = {};
+    let currentRankingType = "semanal";
+    let simuladoInterval = null;
+
+    const ENEM_TAXONOMY = {"Matemática": {"Matemática": {"Matemática Básica e Aritmética": ["Operações Fundamentais (Frações, Decimais, Dízimas, Potenciação e Radiciação)", "Proporcionalidade (Razão, Proporção, Regra de Três, Divisão Proporcional)", "Matemática Comercial (Porcentagem, Aumentos/Descontos Sucessivos, Juros)", "Teoria dos Conjuntos (Operações com Conjuntos, Intervalos, Diagramas)", "Notação Científica, Ordens de Grandeza e Conversão de Unidades", "Escalas Numéricas e Gráficas"], "Estatística e Análise de Dados": ["Interpretação Gráfica (Barras, Colunas, Setores, Histogramas e Infográficos)", "Medidas de Tendência Central (Média Simples, Ponderada, Moda e Mediana)", "Medidas de Dispersão (Amplitude, Desvio Padrão e Variância)"], "Combinatória e Probabilidade": ["Princípio Fundamental da Contagem e Fatorial", "Permutações (Simples, com Repetição e Circulares)", "Arranjos Simples e Combinações Simples", "Probabilidade Clássica e Teórica", "Probabilidade da União (Soma de Probabilidades)", "Eventos Independentes (Multiplicação)", "Probabilidade Condicional", "Probabilidade Complementar"], "Álgebra e Funções": ["Conceitos de Funções (Domínio, Imagem, Gráficos e Raízes)", "Função Afim / 1º Grau (Taxa de Variação e Coeficientes)", "Função Quadrática / 2º Grau (Vértice, Máximos, Mínimos e Raízes)", "Funções Exponenciais e Crescimento/Decaimento", "Logaritmos e Escalas Logarítmicas (pH, Richter, Decibéis)", "Progressão Aritmética (PA)", "Progressão Geométrica (PG)"], "Geometria Plana": ["Fundamentos (Ângulos, Paralelismo e Polígonos Regulares)", "Triângulos, Semelhança e Teorema de Tales", "Teorema de Pitágoras e Trigonometria no Triângulo Retângulo", "Circunferência, Círculo e Setores Circulares", "Cálculo de Áreas de Figuras Planas"], "Geometria Espacial": ["Poliedros, Prismas e Pirâmides (Relação de Euler)", "Corpos Redondos (Cilindros, Cones e Esferas)", "Cálculo de Volumes e Capacidade", "Áreas Superficiais e Planificação de Sólidos"], "Geometria Analítica e Trigonometria": ["Ponto e Reta no Plano Cartesiano (Distância, Ponto Médio e Equação da Reta)", "Ciclo Trigonométrico e Funções Seno/Cosseno", "Lei dos Senos e Lei dos Cossenos"]}}, "Ciências da Natureza": {"Química": {"Química Geral e Inorgânica": ["Estrutura Atômica e Modelos Atômicos", "Tabela Periódica e Propriedades Periódicas", "Ligações Químicas (Iônica, Covalente, Metálica)", "Geometria Molecular, Polaridade e Forças Intermoleculares", "Funções Inorgânicas (Ácidos, Bases, Sais e Óxidos)", "Reações de Neutralização e Chuva Ácida"], "Físico-Química": ["Cálculo Estequiométrico (Massa, Mol, Rendimento e Pureza)", "Reagente Limitante e Reagente em Excesso", "Soluções (Concentração, Molaridade, Diluição e Solubilidade)", "Termoquímica (Entalpia, Lei de Hess e Energia de Ligação)", "Cinética Química (Velocidade, Catalisadores e Energia de Ativação)", "Equilíbrio Químico e Princípio de Le Chatelier", "Equilíbrio Iônico (pH, pOH e Hidrólise Salina)", "Eletroquímica: Pilhas, Potencial de Redução e Espontaneidade", "Eletroquímica: Eletrólise e Proteção contra Corrosão"], "Química Orgânica": ["Estrutura, Hibridização e Classificação de Cadeias Carbônicas", "Funções Orgânicas Oxigenadas (Álcool, Aldeído, Cetona, Ácido Carboxílico, Éster, Éter)", "Funções Orgânicas Nitrogenadas (Aminas e Amidas)", "Propriedades Físicas dos Compostos Orgânicos (Ebulição e Solubilidade)", "Isomeria Plana e Isomeria Espacial (Cis-Trans e Óptica)", "Reações Orgânicas (Esterificação, Saponificação, Combustão)", "Polímeros e Biomoléculas (Lipídios, Carboidratos e Proteínas)"]}, "Física": {"Mecânica": ["Cinemática Escalar (MU, MUV e Gráficos de Movimento)", "Queda Livre e Lançamentos", "Leis de Newton e Forças de Atrito", "Força Elástica e Força Centrípeta", "Trabalho, Potência e Rendimento Mecânico", "Energia Mecânica e Conservação de Energia (Cinética e Potencial)", "Impulso, Quantidade de Movimento e Colisões", "Estática e Equilíbrio de Corpos Rígidos", "Hidrostática (Pressão, Teorema de Stevin, Pascal e Empuxo)"], "Termologia, Óptica e Ondulatória": ["Calorimetria (Calor Sensível, Latente e Trocas de Calor)", "Termodinâmica e Máquinas Térmicas", "Gases Perfeitos e Transformações Gasosas", "Ondulatória (Equação Fundamental, Fenômenos Ondulatórios)", "Acústica e Efeito Doppler", "Óptica Geométrica (Reflexão, Refração, Espelhos e Lentes)"], "Eletromagnetismo": ["Eletrostática (Carga, Eletrização, Lei de Coulomb e Campo Elétrico)", "Eletrodinâmica (Corrente, Leis de Ohm e Circuitos)", "Associação de Resistores em Série e Paralelo", "Potência Elétrica e Consumo de Energia", "Magnetismo, Força Magnética e Indução Eletromagnética"]}, "Biologia": {"Citologia, Bioquímica e Genética": ["Bioquímica Celular (Água, Sais, Carboidratos, Lipídios, Enzimas)", "Estrutura Celular e Transporte pela Membrana", "Bioenergética (Fotossíntese, Respiração Celular e Fermentação)", "Divisão Celular (Mitose, Meiose e Ciclo Celular)", "Genética Mendeliana (1ª e 2ª Leis)", "Alelos Múltiplos, Sistema ABO e Fator Rh", "Herança Ligada ao Sexo", "Biotecnologia (Transgênicos, Clonagem, PCR e Terapia Gênica)"], "Ecologia e Meio Ambiente": ["Conceitos Ecológicos (Nicho, Hábitat e Níveis de Organização)", "Cadeias e Teias Alimentares, Fluxo de Energia e Pirâmides", "Ciclos Biogeoquímicos (Água, Carbono e Nitrogênio)", "Relações Ecológicas (Harmônicas e Desarmônicas)", "Biomas Brasileiros e Mundiais", "Impactos Ambientais (Eutrofização, Efeito Estufa, Bioacumulação e Poluição)"], "Fisiologia, Saúde e Evolução": ["Fisiologia Humana (Digestório, Circulatório, Respiratório e Excretor)", "Sistemas de Coordenação (Nervoso e Endócrino)", "Doenças e Saúde Pública (Vírus, Bactérias, Protozoários e Verminoses)", "Imunologia (Vacinas vs. Soros)", "Teorias Evolutivas (Lamarckismo, Darwinismo e Neodarwinismo)", "Especiação e Evidências da Evolução"]}}, "Ciências Humanas": {"História": {"História Geral": ["Antiguidade Clássica (Grécia: Democracia e Roma: República/Império)", "Idade Média e Sistema Feudal", "Idade Moderna (Renascimento, Reformas Religiosas e Absolutismo)", "Expansão Marítima e Mercantilismo", "Iluminismo e Revoluções Burguesas (Inglesa e Francesa)", "Revolução Industrial e Doutrinas Sociais do Século XIX", "Imperialismo e Neocolonialismo na África e Ásia", "Primeira Guerra Mundial e Crise de 1929", "Regimes Totalitários (Nazifascismo) e Segunda Guerra Mundial", "Guerra Fria e Descolonização Afro-Asiática", "Mundo Contemporâneo e Conflitos do Século XXI"], "História do Brasil": ["Brasil Colônia (Açúcar, Ouro, Escravidão e Sociedade)", "Revoltas Nativistas e Movimentos Emancipacionistas", "Independência e Primeiro Reinado", "Período Regencial e Revoltas Provinciais", "Segundo Reinado (Café, Guerra do Paraguai e Abolição)", "República Velha (Coronelismo, Café com Leite e Revoltas Sociais)", "Era Vargas (Revolução de 30, Estado Novo e Trabalhismo)", "Período Democrático Populista (1945-1964)", "Ditadura Civil-Militar (AI-5, Milagre Econômico e Repressão)", "Redemocratização, Constituição de 1988 e Brasil Contemporâneo"]}, "Geografia": {"Geografia Física e Ambiental": ["Geologia, Tectonismo e Relevo Brasileiro e Mundial", "Solos, Intemperismo e Degradação do Solo", "Climatologia (Fatores, Elementos e Tipos Climáticos)", "Hidrografia e Bacias Hidrográficas do Brasil", "Domínios Morfoclimáticos e Biomas Brasileiros"], "Geografia Humana e Econômica": ["Espaço Agrário (Estrutura Fundiária, Agronegócio e Conflitos)", "Urbanização Brasileira e Problemas Socioespacial Urbanos", "Demografia, Transição Demográfica e Fluxos Migratórios", "Industrialização e Modelos de Produção", "Globalização, Nova Ordem Mundial e Blocos Econômicos", "Matriz Energética e Sustentabilidade"]}, "Filosofia": {"História da Filosofia": ["Filosofia Antiga (Pré-socráticos, Sócrates, Platão e Aristóteles)", "Filosofia Medieval (Patrística e Escolástica)", "Filosofia Moderna (Racionalismo, Empirismo e Criticismo Kantiano)", "Filosofia Política (Maquiavel e Contratualismo: Hobbes, Locke, Rousseau)", "Filosofia Contemporânea (Nietzsche, Existencialismo e Escola de Frankfurt)", "Ética, Moral e Filosofia do Conhecimento"]}, "Sociologia": {"Teoria e Temas Sociológicos": ["Sociologia Clássica (Karl Marx, Émile Durkheim e Max Weber)", "Cultura, Etnocentrismo, Relativismo e Identidade", "Cidadania, Direitos Humanos e Movimentos Sociais", "Mundo do Trabalho (Fordismo, Toyotismo e Precarização)", "Pensamento Social Brasileiro e Formação da Sociedade Brasileira"]}}, "Linguagens": {"Português": {"Estudo do Texto e Linguística": ["Funções da Linguagem e Elementos da Comunicação", "Variação Linguística e Preconceito Linguístico", "Coesão Textual e Coerência Textual", "Semântica, Ambiguidade e Figuras de Linguagem", "Norma Culta Aplicada ao Sentido (Regência, Concordância e Crase)"], "Gêneros e Tipologia Textual": ["Tipologias Textuais (Narrativa, Dissertativa, Descritiva, Injuntiva)", "Gêneros Jornalísticos (Notícia, Reportagem, Editorial, Crônica)", "Gêneros Publicitários e Linguagem Persuasiva", "Gêneros Digitais e Intertextualidade", "Recursos Multimodais (Charges, Tiras e Infográficos)"]}, "Literatura": {"História Literária e Estética": ["Era Colonial: Barroco e Arcadismo", "Romantismo (Poesia e Prosa no Brasil)", "Realismo, Naturalismo e Parnasianismo (Machado de Assis)", "Simbolismo e Pré-Modernismo", "Modernismo no Brasil (1ª Fase: 1922 e Rupturas)", "Modernismo no Brasil (2ª Fase: Poesia e Romance de 30)", "Modernismo no Brasil (3ª Fase: Clarice, Guimarães e Poesia Concreta)", "Literatura Contemporânea e Marginal"]}, "Artes": {"História e Expressão Artística": ["Vanguardas Europeias Modernistas", "Arte Contemporânea, Instalações e Performances", "Arte Urbana, Grafite e Manifestações Visuais", "Patrimônio Histórico e Arte Popular Brasileira"]}, "Educação Física": {"Cultura Corporal": ["Corpo, Padrões de Beleza e Saúde", "Esporte como Fenômeno Social e Inclusão", "Jogos, Lutas e Danças Tradicionais"]}, "Língua Estrangeira (Inglês / Espanhol)": {"Leitura e Interpretação": ["Estratégias de Leitura (Skimming e Scanning)", "Conectivos e Marcadores Discursivos", "Compreensão de Textos Científicos, Jornalísticos e Literários", "Falsos Cognatos e Recursos Gramaticais Aplicados"]}}};
+
+    function showToast(msg, isError = false) {
+      const t = document.getElementById("toast-banner");
+      t.innerText = msg;
+      t.className = isError ? "fixed top-4 right-4 z-50 px-4 py-2.5 rounded-xl shadow-2xl text-xs font-bold bg-rose-600 text-white" : "fixed top-4 right-4 z-50 px-4 py-2.5 rounded-xl shadow-2xl text-xs font-bold bg-emerald-600 text-white";
+      t.classList.remove("hidden");
+      setTimeout(() => t.classList.add("hidden"), 4000);
+    }
+
+    function toggleAuthMode(mode) {
+      authMode = mode;
+      document.getElementById("signup-name-field").classList.toggle("hidden", mode === "login");
+      document.getElementById("auth-btn-action").innerText = mode === "login" ? "Entrar na Plataforma" : "Finalizar Cadastro";
+      document.getElementById("auth-tab-login").className = mode === "login" ? "flex-1 py-1.5 text-xs font-bold border-b-2 border-blue-600 text-blue-600" : "flex-1 py-1.5 text-xs font-bold text-slate-400";
+      document.getElementById("auth-tab-signup").className = mode === "signup" ? "flex-1 py-1.5 text-xs font-bold border-b-2 border-blue-600 text-blue-600" : "flex-1 py-1.5 text-xs font-bold text-slate-400";
+      document.getElementById("auth-status-msg").innerText = "";
+    }
+
+    async function handleAuthAction() {
+      const email = document.getElementById("auth-email").value.trim();
+      const password = document.getElementById("auth-password").value.trim();
+      const name = document.getElementById("auth-name").value.trim();
+      const statusEl = document.getElementById("auth-status-msg");
+      const btn = document.getElementById("auth-btn-action");
+
+      if (!email || !password) { statusEl.innerText = "Preencha e-mail e senha."; return; }
+      if (password.length < 6) { statusEl.innerText = "A senha precisa ter no mínimo 6 dígitos."; return; }
+
+      btn.disabled = true;
+      btn.innerText = "Conectando...";
+
+      try {
+        if (authMode === "signup") {
+          if (!name) { statusEl.innerText = "Informe seu nome completo."; btn.disabled = false; btn.innerText = "Finalizar Cadastro"; return; }
+          const { data, error } = await db.auth.signUp({ email, password, options: { data: { nome: name } } });
+          if (error) { statusEl.innerText = "Erro: " + error.message; btn.disabled = false; btn.innerText = "Finalizar Cadastro"; return; }
+          if (!data.session) { showToast("Cadastro realizado! Faça login agora."); toggleAuthMode("login"); btn.disabled = false; btn.innerText = "Entrar na Plataforma"; return; }
+          await db.from("perfis").upsert([{ id: data.user.id, nome: name, email: email, xp_total: 0 }], { onConflict: "id" });
+          currentUser = data.user;
+          await postLoginSetup(name);
+        } else {
+          const { data, error } = await db.auth.signInWithPassword({ email, password });
+          if (error) { statusEl.innerText = "Falha no login: " + error.message; btn.disabled = false; btn.innerText = "Entrar na Plataforma"; return; }
+          currentUser = data.user;
+          const { data: prof } = await db.from("perfis").select("nome").eq("id", currentUser.id).maybeSingle();
+          await postLoginSetup(prof?.nome || currentUser.user_metadata?.nome || email.split("@")[0]);
+        }
+      } catch (err) {
+        statusEl.innerText = "Ocorreu um erro. Tente novamente.";
+        btn.disabled = false;
+        btn.innerText = authMode === "login" ? "Entrar na Plataforma" : "Finalizar Cadastro";
+      }
+    }
+
+    async function checkActiveSession() {
+      try {
+        db.auth.onAuthStateChange(async (event, session) => {
+          if (event === "SIGNED_IN" && session) {
+            currentUser = session.user;
+            const { data: prof } = await db.from("perfis").select("nome").eq("id", currentUser.id).maybeSingle();
+            await postLoginSetup(prof?.nome || currentUser.user_metadata?.nome || currentUser.email);
+          }
+        });
+        const { data } = await db.auth.getSession();
+        if (data?.session) {
+          currentUser = data.session.user;
+          const { data: prof } = await db.from("perfis").select("nome").eq("id", currentUser.id).maybeSingle();
+          await postLoginSetup(prof?.nome || currentUser.user_metadata?.nome || currentUser.email);
+        }
+      } catch (err) { console.error(err); }
+    }
+
+    async function postLoginSetup(displayName) {
+      document.getElementById("auth-screen").classList.add("hidden");
+      document.getElementById("user-display-tag").innerText = `Aluno: ${displayName}`;
+      await loadUserCloudHistory();
+      await fetchQuestions();
+      await verificarAvisoDoDia();
+      await carregarPerfilUsuario();
+    }
+
+    async function logout() {
+      await db.auth.signOut();
+      localStorage.removeItem("sb-" + SUPABASE_URL.split("//")[1].split(".")[0] + "-auth-token");
+      location.reload();
+    }
+
+    function getUserStorageKey() { return 'amaral_respostas_' + (currentUser?.id || 'anon'); }
+
+    async function loadUserCloudHistory() {
+      try {
+        const local = localStorage.getItem(getUserStorageKey());
+        if (local) userAnswers = JSON.parse(local) || {};
+      } catch(e) { userAnswers = {}; }
+
+      if (!currentUser) return;
+      try {
+        const { data } = await db.from("respostas_usuarios").select("*").eq("user_id", currentUser.id);
+        if (data && data.length) {
+          data.forEach(r => { userAnswers[String(r.question_id)] = { acertou: r.acertou, alternativa_escolhida: r.alternativa_escolhida }; });
+          localStorage.setItem(getUserStorageKey(), JSON.stringify(userAnswers));
+        }
+      } catch(e) {}
+    }
+
+    async function fetchQuestions() {
+      const { data } = await db.from("questoes").select("*").eq("ativo", true).order("id", { ascending: false }).limit(400);
+      allQuestions = data || [];
+      populateDisciplinesDropdown();
+      runFilter();
+    }
+
+    function clearSearchInput() {
+      document.getElementById("filter-search").value = "";
+      document.getElementById("btn-clear-search")?.classList.add("hidden");
+      runFilter();
+    }
+
+    function populateDisciplinesDropdown(selected = "todas") {
+      const area = document.getElementById("filter-area")?.value || "todas";
+      const select = document.getElementById("filter-disciplina");
+      if (!select) return;
+      select.innerHTML = '<option value="todas">Todas as Disciplinas</option>';
+      let list = (area !== "todas" && ENEM_TAXONOMY[area]) ? Object.keys(ENEM_TAXONOMY[area]) : Array.from(new Set(allQuestions.map(q => q.disciplina).filter(Boolean))).sort();
+      list.forEach(d => { const opt = document.createElement("option"); opt.value = d; opt.textContent = d; select.appendChild(opt); });
+      select.value = list.includes(selected) ? selected : "todas";
+      populateTopicsDropdown();
+    }
+
+    function populateTopicsDropdown(selected = "todas") {
+      const area = document.getElementById("filter-area")?.value || "todas";
+      const disc = document.getElementById("filter-disciplina")?.value || "todas";
+      const select = document.getElementById("filter-topico");
+      if (!select) return;
+      select.innerHTML = '<option value="todas">Todos os Tópicos</option>';
+      const topicsSet = new Set();
+      if (area !== "todas" && disc !== "todas" && ENEM_TAXONOMY[area]?.[disc]) Object.keys(ENEM_TAXONOMY[area][disc]).forEach(t => topicsSet.add(t));
+      allQuestions.forEach(q => { if ((area === "todas" || q.area === area) && (disc === "todas" || q.disciplina === disc) && q.topico) topicsSet.add(q.topico); });
+      const topicsList = Array.from(topicsSet).sort();
+      topicsList.forEach(t => { const opt = document.createElement("option"); opt.value = t; opt.textContent = t; select.appendChild(opt); });
+      select.value = topicsList.includes(selected) ? selected : "todas";
+      populateSubtopicsDropdown();
+    }
+
+    function populateSubtopicsDropdown(selected = "todas") {
+      const area = document.getElementById("filter-area")?.value || "todas";
+      const disc = document.getElementById("filter-disciplina")?.value || "todas";
+      const topico = document.getElementById("filter-topico")?.value || "todas";
+      const select = document.getElementById("filter-subtopico");
+      if (!select) return;
+      select.innerHTML = '<option value="todas">Todos os Subtópicos</option>';
+      const subSet = new Set();
+      if (area !== "todas" && disc !== "todas" && topico !== "todas" && ENEM_TAXONOMY[area]?.[disc]?.[topico]) ENEM_TAXONOMY[area][disc][topico].forEach(st => subSet.add(st));
+      allQuestions.forEach(q => { if (q.objeto_conhecimento || q.subtopico) subSet.add(q.objeto_conhecimento || q.subtopico); });
+      const subList = Array.from(subSet).sort();
+      subList.forEach(st => { const opt = document.createElement("option"); opt.value = st; opt.textContent = st; select.appendChild(opt); });
+      select.value = subList.includes(selected) ? selected : "todas";
+    }
+
+    function onAreaChange() { populateDisciplinesDropdown(); runFilter(); }
+    function onDisciplinaChange() { populateTopicsDropdown(); runFilter(); }
+    function onTopicoChange() { populateSubtopicsDropdown(); runFilter(); }
+
+    function clearAllFilters() {
+      document.getElementById("filter-search").value = "";
+      document.getElementById("btn-clear-search")?.classList.add("hidden");
+      document.getElementById("filter-area").value = "todas";
+      document.getElementById("filter-dificuldade").value = "todas";
+      document.getElementById("filter-status").value = "nao_feitas";
+      populateDisciplinesDropdown();
+      runFilter();
+    }
+
+    function runFilter() {
+      const searchTerm = (document.getElementById("filter-search")?.value || "").trim().toLowerCase();
+      document.getElementById("btn-clear-search")?.classList.toggle("hidden", searchTerm.length === 0);
+      const area = document.getElementById("filter-area")?.value || "todas";
+      const disciplina = document.getElementById("filter-disciplina")?.value || "todas";
+      const topico = document.getElementById("filter-topico")?.value || "todas";
+      const subtopico = document.getElementById("filter-subtopico")?.value || "todas";
+      const diff = document.getElementById("filter-dificuldade")?.value || "todas";
+      const status = document.getElementById("filter-status")?.value || "todas";
+
+      currentList = allQuestions.filter(q => {
+        let matchSearch = true;
+        if (searchTerm) {
+          const code = generateQuestionCode(q).toLowerCase();
+          const cleanEnunciado = (q.enunciado || "").toLowerCase().replace(/<[^>]*>/g, " ");
+          matchSearch = cleanEnunciado.includes(searchTerm) || code.includes(searchTerm) || String(q.id).toLowerCase() === searchTerm;
+        }
+        const matchArea = area === "todas" || q.area === area;
+        const matchDisc = disciplina === "todas" || q.disciplina === disciplina;
+        const matchTopico = topico === "todas" || q.topico === topico;
+        const matchSub = subtopico === "todas" || (q.objeto_conhecimento || q.subtopico) === subtopico;
+        const matchDiff = diff === "todas" || q.dificuldade === diff;
+        const resolved = userAnswers[String(q.id)];
+        let matchStatus = true;
+        if (status === "acertadas") matchStatus = resolved && resolved.acertou;
+        if (status === "erradas") matchStatus = resolved && !resolved.acertou;
+        if (status === "nao_feitas") matchStatus = !resolved;
+        return matchSearch && matchArea && matchDisc && matchTopico && matchSub && matchDiff && matchStatus;
+      });
+
+      document.getElementById("filtered-badge-count").innerText = `${currentList.length} itens encontrados`;
+      pointer = 0;
+      renderItem();
+    }
+
+    function getQuestionOptions(q) {
+      return [["A", q.alternativa_a], ["B", q.alternativa_b], ["C", q.alternativa_c], ["D", q.alternativa_d], ["E", q.alternativa_e]].filter(([, text]) => text);
+    }
+
+    function generateQuestionCode(q) {
+      return `${(q.area || "GER").slice(0, 3).toUpperCase()}-${(q.disciplina || "GER").slice(0, 3).toUpperCase()}-${String(q.id).padStart(4, "0")}`;
+    }
+
+    function renderItem() {
+      const feedback = document.getElementById("render-feedback");
+      feedback.className = "hidden p-4 rounded-xl text-sm";
+      if (!currentList.length) {
+        document.getElementById("tag-codigo-questao").innerText = "FIM DA FILA";
+        document.getElementById("tag-counter").innerText = "0 de 0";
+        document.getElementById("render-statement").innerHTML = `<div class="text-center py-8 space-y-3"><div class="text-4xl">🎉</div><h3 class="text-lg font-black text-slate-800 dark:text-white">Você concluiu todas as questões inéditas!</h3><button onclick="document.getElementById('filter-status').value='todas'; runFilter();" class="mt-2 bg-blue-600 text-white font-bold text-xs px-5 py-2.5 rounded-xl">Ver Todas as Questões Feitas</button></div>`;
+        document.getElementById("render-options").innerHTML = "";
+        ["action-submit", "action-next", "action-prev"].forEach(id => document.getElementById(id).classList.add("hidden"));
+        return;
+      }
+      ["action-submit", "action-next", "action-prev"].forEach(id => document.getElementById(id).classList.remove("hidden"));
+      const q = currentList[pointer];
+      chosenOption = null;
+
+      document.getElementById("tag-codigo-questao").innerText = generateQuestionCode(q);
+      document.getElementById("tag-counter").innerText = `Item ${pointer + 1} de ${currentList.length}`;
+      document.getElementById("tag-materia").innerText = q.disciplina || q.area || "Geral";
+      
+      let statementHTML = q.enunciado || "";
+      if (q.imagem_url) statementHTML += `<img src="${q.imagem_url}" />`;
+      document.getElementById("render-statement").innerHTML = statementHTML;
+
+      const optsBox = document.getElementById("render-options");
+      optsBox.innerHTML = "";
+      getQuestionOptions(q).forEach(([letter, text]) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "opt-btn w-full text-left flex items-center gap-3";
+        btn.setAttribute("data-letter", letter);
+        btn.onclick = () => selectOption(letter, btn);
+        btn.innerHTML = `<strong>${letter}</strong><span>${text}</span>`;
+        optsBox.appendChild(btn);
+      });
+
+      const existingAnswer = userAnswers[String(q.id)];
+      const nextText = document.getElementById("next-btn-text");
+      const submitBtn = document.getElementById("action-submit");
+      const btnComentarios = document.getElementById("btn-toggle-comentarios");
+      const avisoComentario = document.getElementById("aviso-bloqueio-comentario");
+
+      if (existingAnswer) {
+        chosenOption = existingAnswer.alternativa_escolhida;
+        document.querySelector(`#render-options .opt-btn[data-letter="${chosenOption}"]`)?.classList.add("is-selected");
+        feedback.className = existingAnswer.acertou ? "p-4 rounded-xl text-sm bg-emerald-50 text-emerald-900 border" : "p-4 rounded-xl text-sm bg-rose-50 text-rose-900 border";
+        feedback.innerHTML = `<strong>${existingAnswer.acertou ? "✅ Acertou!" : "❌ Errou."}</strong> Gabarito: ${q.gabarito}<br>${q.resolucao || ""}`;
+        feedback.classList.remove("hidden");
+        if (nextText) nextText.innerText = "Próxima Questão →";
+        if (submitBtn) submitBtn.innerText = "Resposta Confirmada ✓";
+
+        // LIBERA COMENTÁRIOS SE JÁ RESPONDEU
+        if (btnComentarios) btnComentarios.classList.remove("hidden");
+        if (avisoComentario) avisoComentario.classList.add("hidden");
+      } else {
+        feedback.classList.add("hidden");
+        if (nextText) nextText.innerText = "Pular Item →";
+        if (submitBtn) submitBtn.innerText = "Confirmar Resposta";
+
+        // BLOQUEIA COMENTÁRIOS ENQUANTO NÃO RESPONDER
+        if (btnComentarios) btnComentarios.classList.add("hidden");
+        if (avisoComentario) avisoComentario.classList.remove("hidden");
+        document.getElementById("section-comments")?.classList.add("hidden");
+      }
+      loadCommentsCount(q.id);
+      if (window.renderMathInElement) renderMathInElement(document.body, { delimiters: [{left: "$", right: "$", display: false}] });
+    }
+
+    function selectOption(letter, btn) {
+      chosenOption = letter;
+      document.querySelectorAll("#render-options .opt-btn").forEach(b => b.classList.remove("is-selected"));
+      btn?.classList.add("is-selected");
+    }
+
+    async function submitSelection() {
+      if (!chosenOption) return alert("Selecione uma alternativa.");
+      const q = currentList[pointer];
+      const isRight = chosenOption.toUpperCase() === String(q.gabarito).toUpperCase();
+      const jaRespondida = !!userAnswers[String(q.id)];
+
+      userAnswers[String(q.id)] = { acertou: isRight, alternativa_escolhida: chosenOption };
+      localStorage.setItem(getUserStorageKey(), JSON.stringify(userAnswers));
+
+      if (currentUser) {
+        await db.from("respostas_usuarios").upsert([{ user_id: currentUser.id, question_id: q.id, acertou: isRight, alternativa_escolhida: chosenOption }], { onConflict: "user_id,question_id" });
+        if (!jaRespondida) {
+          const add = isRight ? 3 : 1;
+          const { data: prof } = await db.from("perfis").select("xp_total").eq("id", currentUser.id).maybeSingle();
+          if (prof) await db.from("perfis").update({ xp_total: (prof.xp_total || 0) + add }).eq("id", currentUser.id);
+        }
+      }
+
+      const feedback = document.getElementById("render-feedback");
+      feedback.className = isRight ? "p-4 rounded-xl text-sm bg-emerald-50 text-emerald-900 border" : "p-4 rounded-xl text-sm bg-rose-50 text-rose-900 border";
+      feedback.innerHTML = `<strong>${isRight ? "✅ Acertou!" : "❌ Errou."}</strong> Gabarito: ${q.gabarito}<br>${q.resolucao || ""}`;
+      feedback.classList.remove("hidden");
+
+      document.getElementById("next-btn-text").innerText = "Próxima Questão →";
+      document.getElementById("action-submit").innerText = "Resposta Confirmada ✓";
+
+      // LIBERA O BOTÃO DE COMENTÁRIOS IMEDIATAMENTE APÓS RESPONDER
+      document.getElementById("btn-toggle-comentarios")?.classList.remove("hidden");
+      document.getElementById("aviso-bloqueio-comentario")?.classList.add("hidden");
+
+      renderStatsAndDiagnosis();
+    }
+
+    function moveNext() { 
+      const statusFilter = document.getElementById("filter-status")?.value;
+      if (statusFilter === "nao_feitas") {
+        runFilter();
+      } else {
+        if (pointer < currentList.length - 1) { pointer++; renderItem(); }
+      }
+    }
+    function movePrev() { if (pointer > 0) { pointer--; renderItem(); } }
+
+    async function carregarPerfilUsuario() {
+      if (!currentUser) return;
+      const { data } = await db.from("perfis").select("*").eq("id", currentUser.id).maybeSingle();
+      if (data) {
+        currentUserProfile = data;
+        document.getElementById("user-display-tag").innerText = `${data.nome || currentUser.email} • ${data.curso_pretendido || "ENEM"}`;
+        document.getElementById("perfil-input-nome").value = data.nome || "";
+        document.getElementById("perfil-input-curso").value = data.curso_pretendido || "";
+        document.getElementById("perfil-input-instituicao").value = data.instituicao_desejada || "Universidade Federal (Geral)";
+        if (data.foto_url) {
+          document.getElementById("perfil-preview-foto").src = data.foto_url;
+          document.getElementById("perfil-preview-foto").classList.remove("hidden");
+          document.getElementById("perfil-preview-fallback").classList.add("hidden");
+        }
+        calcularMelhorAreaDesempenho();
+      }
+    }
+
+    function calcularMelhorAreaDesempenho() {
+      const areaStats = {};
+      Object.keys(userAnswers).forEach(qId => {
+        const q = allQuestions.find(item => String(item.id) === qId);
+        if (q && q.area) {
+          if (!areaStats[q.area]) areaStats[q.area] = { total: 0, acertos: 0 };
+          areaStats[q.area].total++;
+          if (userAnswers[qId].acertou) areaStats[q.area].acertos++;
+        }
+      });
+      let melhorArea = "Nenhuma ainda";
+      let maiorTaxa = -1;
+      Object.keys(areaStats).forEach(area => {
+        const taxa = (areaStats[area].acertos / areaStats[area].total) * 100;
+        if (taxa > maiorTaxa) {
+          maiorTaxa = taxa;
+          melhorArea = `${area} (${Math.round(taxa)}%)`;
+        }
+      });
+      document.getElementById("perfil-stat-melhor-area").innerText = melhorArea;
+    }
+
+    function processarFotoGaleria(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = 300; canvas.height = 300;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, 300, 300);
+          const base64 = canvas.toDataURL("image/webp", 0.8);
+          document.getElementById("perfil-input-foto").value = base64;
+          document.getElementById("perfil-preview-foto").src = base64;
+          document.getElementById("perfil-preview-foto").classList.remove("hidden");
+          document.getElementById("perfil-preview-fallback").classList.add("hidden");
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function salvarPerfilEstudante() {
+      if (!currentUser) return;
+      const nome = document.getElementById("perfil-input-nome").value.trim();
+      const curso = document.getElementById("perfil-input-curso").value.trim();
+      const instituicao = document.getElementById("perfil-input-instituicao").value;
+      const foto = document.getElementById("perfil-input-foto").value.trim();
+
+      await db.from("perfis").update({ nome, curso_pretendido: curso, instituicao_desejada: instituicao, foto_url: foto }).eq("id", currentUser.id);
+      showToast("Perfil salvo com sucesso!");
+      carregarPerfilUsuario();
+    }
+
+    function setScreen(tab) {
+      ["practice", "ranking", "erros", "simulado", "stats", "perfil"].forEach(t => {
+        document.getElementById(`view-${t}`).classList.add("hidden");
+        document.getElementById(`nav-btn-${t}`)?.classList.remove("active-nav");
+      });
+      document.getElementById(`view-${tab}`).classList.remove("hidden");
+      document.getElementById(`nav-btn-${tab}`)?.classList.add("active-nav");
+      if (tab === "ranking") loadRankingData();
+      if (tab === "erros") renderErrors();
+      if (tab === "stats") renderStatsAndDiagnosis();
+    }
+
+    async function loadRankingData() {
+      const tbody = document.getElementById("ranking-table-body");
+      tbody.innerHTML = '<tr><td colspan="3" class="py-4 text-center">Carregando...</td></tr>';
+      const { data } = await db.from("perfis").select("id, nome, curso_pretendido, instituicao_desejada, foto_url, xp_total").order("xp_total", { ascending: false }).limit(50);
+      tbody.innerHTML = "";
+      if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="3" class="py-4 text-center">Nenhum aluno no ranking ainda.</td></tr>'; return; }
+      data.forEach((aluno, i) => {
+        tbody.innerHTML += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer" onclick="abrirPerfilAlunoModal('${aluno.id}', '${aluno.nome}')"><td class="py-2.5 font-bold">${i+1}º</td><td class="py-2.5 font-bold">${aluno.nome || "Estudante"} - <span class="text-slate-400 font-normal">${aluno.curso_pretendido || "ENEM"}</span></td><td class="py-2.5 text-right font-black text-amber-500">${aluno.xp_total || 0} XP</td></tr>`;
+      });
+    }
+
+    async function abrirPerfilAlunoModal(id, nome) {
+      document.getElementById("modal-perfil-aluno").classList.remove("hidden");
+      document.getElementById("card-aluno-nome").innerText = nome;
+      const { data } = await db.from("perfis").select("*").eq("id", id).maybeSingle();
+      if (data) {
+        document.getElementById("card-aluno-curso").innerText = data.curso_pretendido || "ENEM";
+        document.getElementById("card-aluno-instituicao").innerText = data.instituicao_desejada || "";
+        document.getElementById("card-aluno-xp").innerText = `${data.xp_total || 0} XP`;
+        if (data.foto_url) {
+          document.getElementById("card-aluno-foto").src = data.foto_url;
+          document.getElementById("card-aluno-foto").classList.remove("hidden");
+          document.getElementById("card-aluno-avatar-fallback").classList.add("hidden");
+        }
+      }
+    }
+    function fecharPerfilAlunoModal() { document.getElementById("modal-perfil-aluno").classList.add("hidden"); }
+
+    function abrirModalReporte() { document.getElementById("modal-reportar-erro").classList.remove("hidden"); }
+    function fecharModalReporte() { document.getElementById("modal-reportar-erro").classList.add("hidden"); }
+    async function enviarReporteErro() {
+      const q = currentList[pointer];
+      await db.from("reportes_questoes").insert([{ question_id: q.id, user_id: currentUser?.id, motivo: document.getElementById("reporte-motivo").value, descricao: document.getElementById("reporte-desc").value }]);
+      showToast("Reporte enviado ao professor!");
+      fecharModalReporte();
+    }
+
+    function fecharAvisoDiario() { 
+      document.getElementById("modal-aviso-diario").classList.add("hidden"); 
+      const hoje = new Date().toISOString().slice(0, 10);
+      localStorage.setItem("amaral_aviso_visto_data", hoje);
+    }
+
+    async function verificarAvisoDoDia() {
+      const hoje = new Date().toISOString().slice(0, 10);
+      const vistoHoje = localStorage.getItem("amaral_aviso_visto_data");
+      if (vistoHoje === hoje) return;
+
+      const { data } = await db.from("avisos").select("*").eq("ativo", true).order("id", { ascending: false }).limit(1);
+      if (data && data.length) {
+        document.getElementById("modal-aviso-titulo").innerText = data[0].titulo;
+        document.getElementById("modal-aviso-mensagem").innerText = data[0].mensagem;
+        document.getElementById("modal-aviso-diario").classList.remove("hidden");
+      }
+    }
+
+    function abrirAvisoManual() {
+      db.from("avisos").select("*").eq("ativo", true).order("id", { ascending: false }).limit(1).then(({ data }) => {
+        if (data && data.length) {
+          document.getElementById("modal-aviso-titulo").innerText = data[0].titulo;
+          document.getElementById("modal-aviso-mensagem").innerText = data[0].mensagem;
+          document.getElementById("modal-aviso-diario").classList.remove("hidden");
+        } else {
+          showToast("Nenhum comunicado no momento.");
+        }
+      });
+    }
+
+    async function toggleCommentsSection() {
+      const q = currentList[pointer];
+      if (!q || !userAnswers[String(q.id)]) {
+        return alert("Você precisa responder a questão antes de ver os comentários.");
+      }
+      const sec = document.getElementById("section-comments");
+      sec.classList.toggle("hidden");
+      if (!sec.classList.contains("hidden")) loadComments();
+    }
+
+    async function loadComments() {
+      const q = currentList[pointer];
+      if (!q) return;
+      const list = document.getElementById("comments-list");
+      list.innerHTML = "<p class='text-xs text-slate-400'>Carregando comentários...</p>";
+      const { data } = await db.from("comentarios").select("*").eq("question_id", q.id).order("id", { ascending: true });
+      list.innerHTML = "";
+      document.getElementById("comments-count").innerText = data?.length || 0;
+      if (!data?.length) { list.innerHTML = "<p class='text-xs text-slate-400 italic'>Nenhum comentário ainda. Seja o primeiro!</p>"; return; }
+      data.forEach(c => {
+        list.innerHTML += `<div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-xs border"><span class="font-bold text-blue-600">${c.autor_nome || "Aluno"}: </span><span>${c.conteudo}</span></div>`;
+      });
+    }
+
+    async function loadCommentsCount(qId) {
+      const { count } = await db.from("comentarios").select("*", { count: "exact", head: true }).eq("question_id", qId);
+      document.getElementById("comments-count").innerText = count || 0;
+    }
+
+    async function postComment() {
+      if (!currentUser) return alert("Faça login para comentar.");
+      const val = document.getElementById("input-comment").value.trim();
+      if (!val) return;
+      const q = currentList[pointer];
+      await db.from("comentarios").insert([{ question_id: q.id, user_id: currentUser.id, autor_nome: currentUserProfile?.nome || currentUser.email, conteudo: val }]);
+      document.getElementById("input-comment").value = "";
+      loadComments();
+    }
+
+    function toggleTheme() {
+      const current = localStorage.getItem("amaral_theme") || "day";
+      const next = current === "day" ? "night" : current === "night" ? "dark" : "day";
+      localStorage.setItem("amaral_theme", next);
+      applyTheme(next);
+      showToast("Tema alterado para: " + next);
+    }
+
+    function applyTheme(theme) {
+      document.body.classList.remove("night-mode", "dark-mode");
+      document.documentElement.classList.remove("dark");
+      if (theme === "night") {
+        document.body.classList.add("night-mode");
+      } else if (theme === "dark") {
+        document.body.classList.add("dark-mode");
+        document.documentElement.classList.add("dark");
+      }
+    }
+
+    window.addEventListener("load", () => {
+      applyTheme(localStorage.getItem("amaral_theme") || "day");
+      checkActiveSession();
+    });
+  </script>
+</body>
+</html>
